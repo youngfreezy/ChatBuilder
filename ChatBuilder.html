@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Chatbuilder</title>
+    <script src="http://chatbuilder.hackreactor.com/ChatBuilder.js"></script>
+  </head>
+  <body>
+
+    <script>
+        delete Chat.display; 
+        delete Chat.fetch; 
+        delete Chat.send;
+        
+        
+
+      $(document).ready(function() { //have this at the top!
+        var $messages = $('.messages');
+        var $msgInput = $(".draft");// this declaration at the beggining keeps it from searching the entire document multiple times on each click.  
+        //making it work on click or enter, keycode for enter is 13.
+        Chat.display = function (message) {
+          $messages.append('<li>'+ message + '</li>');
+        };
+        //chat.fetch is getting data from another server (non-blocking/asynchronous)
+        Chat.fetch = function(callback) { //callback is a function
+          console.log('fetch'); //manual fetch - our's, not the built-in
+          var apiCall = $.ajax({
+            method: 'GET',
+            url: Chat.resourceAddress + "?order=-createdAt" //api Call parse server -- gets the latest elements.  
+          });
+          apiCall.done(function(response){ //now, the call is over, and you're refining the data you get back.  
+          //response is an object.  with one property, named results.  results containts an  array of objects.
+            //Each object has data, we need the 'text' property only.
+            var arrayResults = [];
+            response.results.forEach(function(property){
+              arrayResults.push(property.text);
+            });
+
+            callback(arrayResults); //because callback is a function.  see line 94 for when we did the same thing.  
+          });
+          apiCall.fail(function(error){
+            console.log("error", error);
+          });
+        };
+
+        Chat.send = function(message){
+
+          var apiCall = $.ajax({
+            method: 'POST',
+            url: Chat.resourceAddress,
+            contentType: "application/json", //added this in because it's sending it as a string instead of a JSON object.  
+            data: JSON.stringify({
+              text: Chat.username + ": " + message,
+              username: Chat.username
+
+            })
+          });
+          apiCall.fail(function(error){
+            console.log("error", error);
+          });
+
+        };
+
+        var chatDisplay = function() {
+                   var input = $msgInput.val();
+                   if (input.length < 0) { // this doesn't allow user to input empty message.
+                       return;
+                   }
+                   console.log("Sending message!")
+                   Chat.send(input);
+                   Chat.display(input);
+                   $msgInput.val(""); //deleting the input from the box.
+               }
+              $msgInput.on('keyup', function(event){
+                if (event.which == 13){
+                  chatDisplay();
+
+                }
+
+              });
+               $(".send").on('click', chatDisplay); 
+ //               "$(".send").on('click', chatDisplay)" this means, we are telling jquery to execute chatDisplay **when** the click occurs. () after the function name means execute the function
+
+               //*  Chat.display()  takes a string as its only input, and displays that string to the user in a bulleted list.
+//*  Chat.display()  won't work unless there is a  ul  element visible on the page with the class  messages .
+//messages is an array of strings.  you need to loop through to get the individual strings.  
+
+// this function shows the messages when chat is fetched ie is the callback for chat.fetch(). display is called inside the (receivedMessages) function which allows the messages to be displayed.
+
+function receivedMessages(messages) {
+  console.log(messages);
+  messages.forEach(function(message){
+    Chat.display(message);
+  });
+}
+
+Chat.fetch(receivedMessages); //keep this initial call so that it loads when the page loads, initially.
+
+//without forEach to avoid browser issues.
+
+// function receivedMessagesArray(messages) {
+//   for(var i = 0; i<messages.length; i++){
+//     Chat.display(messages[i]);
+//   }
+// }
+
+// setInterval(function(){
+// console.log("Fetching messages");
+// Chat.fetch(receivedMessagesArray);
+// }, (3 * 1000));
+  
+  
+// })
+
+
+
+
+ })
+
+    </script>
+
+    <h2>*Fixed* Chat</h2>
+
+    <input class="draft" type="text"/> <button class="send">Send</button>
+
+    <ul class="messages">
+    </ul>
+
+  </body>
+</html>
